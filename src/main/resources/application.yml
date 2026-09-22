@@ -1,0 +1,3 @@
+spring:
+  application:
+    name: beandoche_osee_backend
