@@ -6,6 +6,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.sql.Timestamp;
 import java.time.Instant;
 
+import com.beandoche_osee_backend.domain.auth.entity.RefreshToken;
+import com.beandoche_osee_backend.domain.auth.entity.SocialAccount;
+import com.beandoche_osee_backend.domain.auth.entity.User;
+import com.beandoche_osee_backend.domain.auth.entity.UserStatus;
+import com.beandoche_osee_backend.domain.auth.entity.SocialProvider;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +43,15 @@ class AuthPersistenceIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private SocialAccountRepository socialAccountRepository;
+
+    @Autowired
+    private RefreshTokenRepository refreshTokenRepository;
+
     @Test
     @DisplayName("t1 Flyway creates all authentication tables")
     void t1_flywayCreatesAllAuthenticationTables() {
@@ -69,6 +83,30 @@ class AuthPersistenceIntegrationTest {
 
         assertThatThrownBy(() -> insertRefreshToken(userId, "same-token-hash"))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @DisplayName("t4 repositories persist and find authentication aggregates")
+    void t4_repositoriesPersistAndFindAuthenticationAggregates() {
+        Instant now = Instant.now();
+        User user = userRepository.save(User.active(now));
+        socialAccountRepository.save(SocialAccount.link(user, SocialProvider.GOOGLE, "google-user-1", now));
+        refreshTokenRepository.save(RefreshToken.issue(
+                user,
+                "a".repeat(64),
+                now.plusSeconds(172_800),
+                now.plusSeconds(172_800),
+                now));
+
+        User savedUser = userRepository.findById(user.getId()).orElseThrow();
+        SocialAccount savedAccount = socialAccountRepository
+                .findByProviderAndProviderUserId(SocialProvider.GOOGLE, "google-user-1")
+                .orElseThrow();
+        RefreshToken savedToken = refreshTokenRepository.findByTokenHash("a".repeat(64)).orElseThrow();
+
+        assertThat(savedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
+        assertThat(savedAccount.getUser().getId()).isEqualTo(user.getId());
+        assertThat(savedToken.getAbsoluteExpiresAt()).isEqualTo(now.plusSeconds(172_800));
     }
 
     private Long insertActiveUser() {
