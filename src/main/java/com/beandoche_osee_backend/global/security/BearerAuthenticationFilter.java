@@ -23,6 +23,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class BearerAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String PUBLIC_AUTH_PATH_PREFIX = "/api/auth/";
 
     private final AccessTokenProvider accessTokenProvider;
     private final UserRepository userRepository;
@@ -35,6 +36,12 @@ public class BearerAuthenticationFilter extends OncePerRequestFilter {
         this.accessTokenProvider = accessTokenProvider;
         this.userRepository = userRepository;
         this.authenticationEntryPoint = authenticationEntryPoint;
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String authPathPrefix = request.getContextPath() + PUBLIC_AUTH_PATH_PREFIX;
+        return request.getRequestURI().startsWith(authPathPrefix);
     }
 
     @Override
@@ -70,7 +77,9 @@ public class BearerAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String extractBearerToken(String authorization) {
-        if (authorization == null || !authorization.startsWith(BEARER_PREFIX)) {
+        if (authorization == null
+                || authorization.length() < BEARER_PREFIX.length()
+                || !authorization.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
             throw new InvalidAccessAuthenticationException();
         }
         String token = authorization.substring(BEARER_PREFIX.length()).trim();

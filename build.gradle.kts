@@ -4,6 +4,8 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
 }
 
+val mockitoAgent = configurations.create("mockitoAgent")
+
 group = "com"
 version = "0.0.1-SNAPSHOT"
 description = "beandoche_osee_backend"
@@ -43,6 +45,9 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
     testImplementation("org.testcontainers:testcontainers-junit-jupiter")
     testImplementation("org.testcontainers:testcontainers-postgresql")
+    mockitoAgent("org.mockito:mockito-core") {
+        isTransitive = false
+    }
     testCompileOnly("org.projectlombok:lombok")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testAnnotationProcessor("org.projectlombok:lombok")
@@ -50,4 +55,5 @@ dependencies {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+    jvmArgs("-javaagent:${mockitoAgent.asPath}", "-Xshare:off")
 }

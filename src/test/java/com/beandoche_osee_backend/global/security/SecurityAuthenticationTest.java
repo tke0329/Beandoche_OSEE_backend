@@ -3,6 +3,7 @@ package com.beandoche_osee_backend.global.security;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -71,14 +72,17 @@ class SecurityAuthenticationTest {
     @Test
     @DisplayName("t3 active user with a valid access token can access protected resources")
     void t3_activeUserWithValidAccessTokenCanAccessProtectedResources() throws Exception {
+        User activeUser = mock(User.class);
+        given(activeUser.isActive()).willReturn(true);
+        given(activeUser.getId()).willReturn(42L);
         given(accessTokenProvider.parse("active-token"))
                 .willReturn(new AccessTokenClaims(42L, NOW, NOW.plusSeconds(900)));
-        given(userRepository.findById(42L)).willReturn(Optional.of(User.active(NOW)));
+        given(userRepository.findById(42L)).willReturn(Optional.of(activeUser));
 
         mockMvc.perform(get(PROTECTED_PATH)
                         .header(HttpHeaders.AUTHORIZATION, "Bearer active-token"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("ok"));
+                .andExpect(content().string("42"));
     }
 
     @Test
@@ -109,5 +113,33 @@ class SecurityAuthenticationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer withdrawn-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_ACCESS_TOKEN"));
+    }
+
+    @Test
+    @DisplayName("t6 public authentication endpoint ignores an obsolete access token")
+    void t6_publicAuthenticationEndpointIgnoresObsoleteAccessToken() throws Exception {
+        String obsoleteToken = "obsolete-token";
+        given(accessTokenProvider.parse(obsoleteToken)).willThrow(new InvalidAccessTokenException());
+
+        mockMvc.perform(get("/api/auth/test/public")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + obsoleteToken))
+                .andExpect(status().isOk())
+                .andExpect(content().string("public"));
+    }
+
+    @Test
+    @DisplayName("t7 bearer scheme is accepted without case sensitivity")
+    void t7_bearerSchemeIsAcceptedWithoutCaseSensitivity() throws Exception {
+        User activeUser = mock(User.class);
+        given(activeUser.isActive()).willReturn(true);
+        given(activeUser.getId()).willReturn(42L);
+        given(accessTokenProvider.parse("active-token"))
+                .willReturn(new AccessTokenClaims(42L, NOW, NOW.plusSeconds(900)));
+        given(userRepository.findById(42L)).willReturn(Optional.of(activeUser));
+
+        mockMvc.perform(get(PROTECTED_PATH)
+                        .header(HttpHeaders.AUTHORIZATION, "bearer active-token"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("42"));
     }
 }
