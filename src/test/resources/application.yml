@@ -1,0 +1,5 @@
+auth:
+  token:
+    jwt-secret: dGVzdC1zZWNyZXQta2V5LXdpdGgtYXQtbGVhc3QtMzItYnl0ZXM=
+    access-token-ttl: 15m
+    session-ttl: 48h
