@@ -1,7 +1,7 @@
 package com.beandoche_osee_backend.domain.auth.controller;
 
-import com.beandoche_osee_backend.domain.auth.service.GoogleLoginResult;
 import com.beandoche_osee_backend.domain.auth.service.GoogleLoginService;
+import com.beandoche_osee_backend.domain.auth.service.SocialLoginResult;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +22,7 @@ public class GoogleLoginController {
 
     @PostMapping
     public ResponseEntity<GoogleLoginResponse> login(@Valid @RequestBody GoogleLoginRequest request) {
-        GoogleLoginResult result = googleLoginService.login(request.idToken());
+        SocialLoginResult result = googleLoginService.login(request.idToken());
         return ResponseEntity.ok(GoogleLoginResponse.from(result));
     }
 

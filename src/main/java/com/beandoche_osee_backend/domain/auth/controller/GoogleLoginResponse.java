@@ -2,7 +2,7 @@ package com.beandoche_osee_backend.domain.auth.controller;
 
 import java.time.Instant;
 
-import com.beandoche_osee_backend.domain.auth.service.GoogleLoginResult;
+import com.beandoche_osee_backend.domain.auth.service.SocialLoginResult;
 
 public record GoogleLoginResponse(
         Long userId,
@@ -15,7 +15,7 @@ public record GoogleLoginResponse(
 
     private static final String BEARER_TOKEN_TYPE = "Bearer";
 
-    public static GoogleLoginResponse from(GoogleLoginResult result) {
+    public static GoogleLoginResponse from(SocialLoginResult result) {
         return new GoogleLoginResponse(
                 result.userId(),
                 result.newUser(),

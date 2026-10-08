@@ -2,7 +2,7 @@ package com.beandoche_osee_backend.domain.auth.service;
 
 import java.time.Instant;
 
-public record GoogleLoginResult(
+public record SocialLoginResult(
         Long userId,
         boolean newUser,
         String accessToken,

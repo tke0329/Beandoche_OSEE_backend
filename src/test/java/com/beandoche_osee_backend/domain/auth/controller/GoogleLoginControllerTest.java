@@ -11,9 +11,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.Instant;
 
 import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
-import com.beandoche_osee_backend.domain.auth.service.GoogleLoginResult;
 import com.beandoche_osee_backend.domain.auth.service.GoogleLoginService;
 import com.beandoche_osee_backend.domain.auth.service.InvalidSocialTokenException;
+import com.beandoche_osee_backend.domain.auth.service.SocialLoginResult;
 import com.beandoche_osee_backend.domain.auth.token.AccessTokenProvider;
 import com.beandoche_osee_backend.global.security.RestAuthenticationEntryPoint;
 import org.junit.jupiter.api.DisplayName;
@@ -50,7 +50,7 @@ class GoogleLoginControllerTest {
     @Test
     @DisplayName("t1 valid Google id token returns service tokens")
     void t1_validGoogleIdTokenReturnsServiceTokens() throws Exception {
-        given(googleLoginService.login("valid-google-id-token")).willReturn(new GoogleLoginResult(
+        given(googleLoginService.login("valid-google-id-token")).willReturn(new SocialLoginResult(
                 42L,
                 true,
                 "access-token",

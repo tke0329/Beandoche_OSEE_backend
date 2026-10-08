@@ -3,6 +3,7 @@ package com.beandoche_osee_backend.global.error;
 import java.util.List;
 
 import com.beandoche_osee_backend.domain.auth.service.InvalidSocialTokenException;
+import com.beandoche_osee_backend.domain.auth.service.SocialLoginNotAllowedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -26,7 +27,7 @@ public class GlobalExceptionHandler {
                 fieldErrors));
     }
 
-    @ExceptionHandler(InvalidSocialTokenException.class)
+    @ExceptionHandler({InvalidSocialTokenException.class, SocialLoginNotAllowedException.class})
     public ResponseEntity<ApiErrorResponse> handleInvalidSocialToken() {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiErrorResponse.of(
                 "SOCIAL_LOGIN_FAILED",
