@@ -1,3 +1,9 @@
 spring:
   application:
     name: beandoche_osee_backend
+
+auth:
+  token:
+    jwt-secret: ${AUTH_JWT_SECRET:}
+    access-token-ttl: ${AUTH_ACCESS_TOKEN_TTL:15m}
+    session-ttl: ${AUTH_SESSION_TTL:48h}

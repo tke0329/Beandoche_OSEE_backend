@@ -24,10 +24,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-@WebMvcTest(controllers = SecurityAuthenticationTest.ProtectedTestController.class)
+@WebMvcTest(controllers = ProtectedTestController.class)
 @Import({SecurityConfig.class, BearerAuthenticationFilter.class, RestAuthenticationEntryPoint.class})
 class SecurityAuthenticationTest {
 
@@ -111,14 +109,5 @@ class SecurityAuthenticationTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer withdrawn-token"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_ACCESS_TOKEN"));
-    }
-
-    @RestController
-    static class ProtectedTestController {
-
-        @GetMapping(PROTECTED_PATH)
-        String protectedEndpoint() {
-            return "ok";
-        }
     }
 }
