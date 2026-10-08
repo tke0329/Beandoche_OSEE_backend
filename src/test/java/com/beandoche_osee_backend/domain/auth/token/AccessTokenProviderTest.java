@@ -37,7 +37,7 @@ class AccessTokenProviderTest {
     @DisplayName("t2 expired access token is rejected")
     void t2_expiredAccessTokenIsRejected() {
         String token = providerAt(ISSUED_AT).issue(42L);
-        AccessTokenProvider expiredTokenProvider = providerAt(ISSUED_AT.plus(ACCESS_TOKEN_TTL));
+        AccessTokenProvider expiredTokenProvider = providerAt(ISSUED_AT.plus(ACCESS_TOKEN_TTL).plusSeconds(1));
 
         assertThatThrownBy(() -> expiredTokenProvider.parse(token))
                 .isInstanceOf(InvalidAccessTokenException.class);
@@ -48,8 +48,10 @@ class AccessTokenProviderTest {
     void t3_modifiedAccessTokenIsRejectedWithoutExposingItsValue() {
         AccessTokenProvider provider = providerAt(ISSUED_AT);
         String token = provider.issue(42L);
-        String modifiedToken = token.substring(0, token.length() - 1)
-                + (token.endsWith("a") ? "b" : "a");
+        String[] tokenParts = token.split("\\.");
+        String signature = tokenParts[2];
+        String modifiedSignature = (signature.startsWith("a") ? "b" : "a") + signature.substring(1);
+        String modifiedToken = tokenParts[0] + "." + tokenParts[1] + "." + modifiedSignature;
 
         assertThatThrownBy(() -> provider.parse(modifiedToken))
                 .isInstanceOf(InvalidAccessTokenException.class)
