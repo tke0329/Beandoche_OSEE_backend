@@ -1,11 +1,14 @@
 package com.beandoche_osee_backend.domain.auth.provider.google;
 
 import com.beandoche_osee_backend.domain.auth.service.InvalidSocialTokenException;
+import com.beandoche_osee_backend.domain.auth.service.SocialProviderUnavailableException;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestClientException;
 
 @Component
 public class GoogleIdTokenVerifier {
@@ -20,9 +23,27 @@ public class GoogleIdTokenVerifier {
         try {
             Jwt jwt = jwtDecoder.decode(requireToken(idToken));
             return new GoogleIdentity(requireSubject(jwt.getSubject()));
-        } catch (JwtException | IllegalArgumentException | NullPointerException exception) {
+        } catch (JwtValidationException exception) {
+            throw new InvalidSocialTokenException();
+        } catch (JwtException exception) {
+            if (hasRestClientCause(exception)) {
+                throw new SocialProviderUnavailableException();
+            }
+            throw new InvalidSocialTokenException();
+        } catch (IllegalArgumentException | NullPointerException exception) {
             throw new InvalidSocialTokenException();
         }
+    }
+
+    private static boolean hasRestClientCause(Throwable exception) {
+        Throwable cause = exception;
+        while (cause != null) {
+            if (cause instanceof RestClientException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
     }
 
     private static String requireToken(String token) {
