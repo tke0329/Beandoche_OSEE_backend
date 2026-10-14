@@ -13,7 +13,9 @@ import java.time.Instant;
 import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
 import com.beandoche_osee_backend.domain.auth.service.GoogleLoginService;
 import com.beandoche_osee_backend.domain.auth.service.InvalidSocialTokenException;
+import com.beandoche_osee_backend.domain.auth.service.SocialLoginNotAllowedException;
 import com.beandoche_osee_backend.domain.auth.service.SocialLoginResult;
+import com.beandoche_osee_backend.domain.auth.service.SocialProviderUnavailableException;
 import com.beandoche_osee_backend.domain.auth.token.AccessTokenProvider;
 import com.beandoche_osee_backend.global.security.RestAuthenticationEntryPoint;
 import org.junit.jupiter.api.DisplayName;
@@ -104,5 +106,51 @@ class GoogleLoginControllerTest {
                 .andExpect(jsonPath("$.message").value("Google 로그인에 실패했습니다."))
                 .andExpect(content().string(not(containsString(sensitiveToken))))
                 .andExpect(content().string(not(containsString("InvalidSocialTokenException"))));
+    }
+
+    @Test
+    @DisplayName("t4 malformed JSON returns a safe validation error")
+    void t4_malformedJsonReturnsSafeValidationError() throws Exception {
+        mockMvc.perform(post("/api/auth/social/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{invalid-json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"))
+                .andExpect(content().string(not(containsString("Exception"))))
+                .andExpect(content().string(not(containsString("stackTrace"))));
+    }
+
+    @Test
+    @DisplayName("t5 inactive user receives the same safe social login error")
+    void t5_inactiveUserReceivesSameSafeSocialLoginError() throws Exception {
+        given(googleLoginService.login("inactive-user-token"))
+                .willThrow(new SocialLoginNotAllowedException());
+
+        mockMvc.perform(post("/api/auth/social/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken":"inactive-user-token"}
+                                """))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("SOCIAL_LOGIN_FAILED"))
+                .andExpect(content().string(not(containsString("SocialLoginNotAllowedException"))));
+    }
+
+    @Test
+    @DisplayName("t6 Google provider outage returns a retryable safe error")
+    void t6_googleProviderOutageReturnsRetryableSafeError() throws Exception {
+        given(googleLoginService.login("provider-outage-token"))
+                .willThrow(new SocialProviderUnavailableException());
+
+        mockMvc.perform(post("/api/auth/social/google")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"idToken":"provider-outage-token"}
+                                """))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("SOCIAL_PROVIDER_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value(
+                        "Google 로그인 서비스를 잠시 사용할 수 없습니다. 잠시 후 다시 시도해 주세요."))
+                .andExpect(content().string(not(containsString("SocialProviderUnavailableException"))));
     }
 }

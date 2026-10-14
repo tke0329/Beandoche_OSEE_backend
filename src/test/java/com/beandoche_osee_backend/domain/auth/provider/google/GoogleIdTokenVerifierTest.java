@@ -9,11 +9,13 @@ import java.time.Instant;
 import java.util.Map;
 
 import com.beandoche_osee_backend.domain.auth.service.InvalidSocialTokenException;
+import com.beandoche_osee_backend.domain.auth.service.SocialProviderUnavailableException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
+import org.springframework.web.client.ResourceAccessException;
 
 class GoogleIdTokenVerifierTest {
 
@@ -47,6 +49,18 @@ class GoogleIdTokenVerifierTest {
 
         assertThatThrownBy(() -> verifier.verify("subjectless-token"))
                 .isExactlyInstanceOf(InvalidSocialTokenException.class);
+    }
+
+    @Test
+    @DisplayName("t4 Google key endpoint connection failure becomes a retryable provider failure")
+    void t4_googleKeyEndpointConnectionFailureBecomesRetryableProviderFailure() {
+        given(jwtDecoder.decode("provider-outage-token")).willThrow(new org.springframework.security.oauth2.jwt.JwtException(
+                "Google key lookup failed",
+                new ResourceAccessException("connection failed")));
+
+        assertThatThrownBy(() -> verifier.verify("provider-outage-token"))
+                .isExactlyInstanceOf(SocialProviderUnavailableException.class)
+                .hasMessage(null);
     }
 
     private Jwt jwt(String subject) {
