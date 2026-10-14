@@ -5,6 +5,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
+import com.beandoche_osee_backend.domain.auth.repository.RefreshTokenRepository;
+import com.beandoche_osee_backend.domain.auth.repository.SocialAccountRepository;
 import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
 
 @SpringBootTest(properties = {
@@ -17,6 +19,12 @@ class BeandocheOseeBackendApplicationTests {
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @MockitoBean
+    private SocialAccountRepository socialAccountRepository;
+
+    @MockitoBean
+    private RefreshTokenRepository refreshTokenRepository;
 
     @Test
     @DisplayName("t1 application context loads without infrastructure")

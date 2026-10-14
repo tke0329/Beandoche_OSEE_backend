@@ -1,6 +1,8 @@
 spring:
   application:
     name: beandoche_osee_backend
+  config:
+    import: optional:file:.env[.properties]
   datasource:
     url: ${DB_URL:}
     username: ${DB_USERNAME:}
@@ -15,3 +17,9 @@ auth:
     jwt-secret: ${AUTH_JWT_SECRET:}
     access-token-ttl: ${AUTH_ACCESS_TOKEN_TTL:15m}
     session-ttl: ${AUTH_SESSION_TTL:48h}
+  google:
+    client-id: ${GOOGLE_OAUTH_CLIENT_ID:}
+    issuer: ${GOOGLE_OAUTH_ISSUER:https://accounts.google.com}
+    jwk-set-uri: ${GOOGLE_OAUTH_JWK_SET_URI:https://www.googleapis.com/oauth2/v3/certs}
+    connect-timeout: ${GOOGLE_OAUTH_CONNECT_TIMEOUT:3s}
+    read-timeout: ${GOOGLE_OAUTH_READ_TIMEOUT:3s}

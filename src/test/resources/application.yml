@@ -3,3 +3,9 @@ auth:
     jwt-secret: dGVzdC1zZWNyZXQta2V5LXdpdGgtYXQtbGVhc3QtMzItYnl0ZXM=
     access-token-ttl: 15m
     session-ttl: 48h
+  google:
+    client-id: test-google-client-id
+    issuer: https://accounts.google.com
+    jwk-set-uri: https://www.googleapis.com/oauth2/v3/certs
+    connect-timeout: 3s
+    read-timeout: 3s
