@@ -76,4 +76,19 @@ class KakaoLoginControllerTest {
         assertThat(response.getContentAsString()).contains("KAKAO_STATE_INVALID").doesNotContain("sensitive-code");
         verifyNoInteractions(service);
     }
+
+    @Test
+    @DisplayName("t4 provider cancellation consumes state and never exchanges a code")
+    void t4_providerCancellationConsumesState() throws Exception {
+        var start = mvc.perform(get("/api/auth/social/kakao/authorize")).andReturn().getResponse();
+        String state = UriComponentsBuilder.fromUriString(start.getHeader("Location")).build().getQueryParams().getFirst("state");
+        Cookie binding = start.getCookie("osee_kakao_browser");
+        var canceled = mvc.perform(get("/api/auth/social/kakao/callback").param("state", state).param("error", "access_denied").cookie(binding))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        assertThat(canceled.getContentAsString()).contains("KAKAO_CANCELED");
+        var replay = mvc.perform(get("/api/auth/social/kakao/callback").param("state", state).param("code", "code").cookie(binding))
+                .andExpect(status().isOk()).andReturn().getResponse();
+        assertThat(replay.getContentAsString()).contains("KAKAO_STATE_INVALID");
+        verifyNoInteractions(service);
+    }
 }

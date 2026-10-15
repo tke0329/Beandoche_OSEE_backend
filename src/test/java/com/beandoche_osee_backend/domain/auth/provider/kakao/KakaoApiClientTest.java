@@ -49,4 +49,13 @@ class KakaoApiClientTest {
         assertThatThrownBy(() -> new KakaoApiClient(properties, auth.build(), user.build()).verifyCode("code"))
                 .isInstanceOf(KakaoLoginException.class);
     }
+
+    @Test
+    @DisplayName("t4 provider outage is converted to a safe unavailable result")
+    void t4_providerOutageIsUnavailable() {
+        authServer.expect(anything()).andRespond(withServerError().body("private-provider-outage"));
+        assertThatThrownBy(() -> new KakaoApiClient(properties, auth.build(), user.build()).verifyCode("code"))
+                .isInstanceOfSatisfying(KakaoLoginException.class, exception -> assertThat(exception.code()).isEqualTo("KAKAO_UNAVAILABLE"))
+                .hasMessageNotContaining("private");
+    }
 }
