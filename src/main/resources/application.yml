@@ -12,6 +12,10 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+
 auth:
   token:
     jwt-secret: ${AUTH_JWT_SECRET:}
