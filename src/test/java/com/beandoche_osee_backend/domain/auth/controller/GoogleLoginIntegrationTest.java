@@ -7,6 +7,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.Duration;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import com.beandoche_osee_backend.domain.auth.entity.RefreshToken;
 import com.beandoche_osee_backend.domain.auth.provider.google.GoogleIdTokenVerifier;
@@ -19,6 +22,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -35,7 +42,15 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
+@Import(GoogleLoginIntegrationTest.FixedClockConfig.class)
 class GoogleLoginIntegrationTest {
+
+    @TestConfiguration
+    static class FixedClockConfig {
+        @Bean @Primary Clock integrationClock() {
+            return Clock.fixed(Instant.parse("2026-10-20T00:00:00Z"), ZoneOffset.UTC);
+        }
+    }
 
     @Container
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:17-alpine");
