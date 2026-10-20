@@ -18,6 +18,9 @@ import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
 class BeandocheOseeBackendApplicationTests {
 
     @MockitoBean
+    private com.beandoche_osee_backend.domain.profile.UserProfileRepository userProfileRepository;
+
+    @MockitoBean
     private UserRepository userRepository;
 
     @MockitoBean
