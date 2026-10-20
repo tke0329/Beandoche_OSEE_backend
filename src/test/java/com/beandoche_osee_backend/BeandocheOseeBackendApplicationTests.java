@@ -16,6 +16,8 @@ import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
                 + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
 })
 class BeandocheOseeBackendApplicationTests {
+    @MockitoBean
+    private com.beandoche_osee_backend.domain.auth.service.SocialUnlinkTasks socialUnlinkTasks;
 
     @MockitoBean
     private com.beandoche_osee_backend.domain.profile.UserProfileRepository userProfileRepository;

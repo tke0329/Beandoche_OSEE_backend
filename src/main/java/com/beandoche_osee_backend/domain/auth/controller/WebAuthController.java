@@ -36,7 +36,7 @@ public class WebAuthController {
     public ResponseEntity<?> restore(@CookieValue(name = WebSessionCookies.NAME, required = false) String token, HttpServletRequest request) {
         if (!trusted(request)) return denied();
         return sessions.rotate(token).<ResponseEntity<?>>map(result -> authenticated(result, request))
-                .orElseGet(() -> ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookies.clear(request))
+                .orElseGet(() -> ResponseEntity.noContent()
                         .header(HttpHeaders.CACHE_CONTROL, "no-store").build());
     }
 

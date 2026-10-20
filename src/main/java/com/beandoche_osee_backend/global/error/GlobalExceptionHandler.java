@@ -15,6 +15,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(org.springframework.dao.TransientDataAccessException.class)
+    public ResponseEntity<ApiErrorResponse> handleTransientDatabaseFailure(org.springframework.dao.TransientDataAccessException failure) {
+        LOG.warn("Database operation requires retry ({})", failure.getClass().getSimpleName());
+        return ResponseEntity.status(503).body(ApiErrorResponse.of("TEMPORARILY_UNAVAILABLE", "요청이 겹쳤습니다. 잠시 후 다시 시도해 주세요."));
+    }
 
     @ExceptionHandler(com.beandoche_osee_backend.domain.profile.ProfileFailure.class)
     public ResponseEntity<ApiErrorResponse> handleProfile(com.beandoche_osee_backend.domain.profile.ProfileFailure failure) {

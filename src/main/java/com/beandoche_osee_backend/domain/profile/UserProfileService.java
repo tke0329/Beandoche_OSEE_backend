@@ -15,9 +15,12 @@ public class UserProfileService {
     private final ProfileImageValidator images;
     private final Clock clock;
     private final NicknamePolicy nicknames;
+    private final com.beandoche_osee_backend.domain.auth.repository.UserRepository users;
     private final SecureRandom random = new SecureRandom();
-    public UserProfileService(UserProfileRepository profiles, ProfileImageValidator images, Clock clock, NicknamePolicy nicknames) {
+    public UserProfileService(UserProfileRepository profiles, ProfileImageValidator images, Clock clock, NicknamePolicy nicknames,
+            com.beandoche_osee_backend.domain.auth.repository.UserRepository users) {
         this.profiles = profiles; this.images = images; this.clock = clock; this.nicknames = nicknames;
+        this.users = users;
     }
 
     @Transactional(readOnly = true)
@@ -27,6 +30,8 @@ public class UserProfileService {
 
     @Transactional
     public ProfileResponse save(Long userId, String input, MultipartFile image, boolean removeImage) {
+        users.findLocked(userId).filter(user -> user.isActive())
+                .orElseThrow(() -> new ProfileFailure("AUTHENTICATION_REQUIRED", "로그인 상태를 다시 확인해 주세요.", 401));
         String nickname = nicknames.normalize(input);
         var profile = profiles.findLocked(userId).orElseGet(() -> new UserProfile(userId));
         if (nickname.isEmpty() && profile.getNickname() == null) nickname = generateNickname(userId);

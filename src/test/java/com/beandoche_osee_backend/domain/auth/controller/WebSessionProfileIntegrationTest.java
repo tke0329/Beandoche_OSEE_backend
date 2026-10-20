@@ -38,6 +38,9 @@ class WebSessionProfileIntegrationTest {
     }
     @Autowired private MockMvc mvc;
     @Autowired private RefreshTokenRepository tokens;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbc;
+    @Autowired private com.beandoche_osee_backend.domain.auth.service.SocialUnlinkWorker unlinkWorker;
+    @MockitoBean private com.beandoche_osee_backend.domain.auth.provider.kakao.KakaoUnlinkClient kakaoUnlink;
     @MockitoBean private GoogleIdTokenVerifier google;
 
     private org.springframework.mock.web.MockHttpServletResponse login(String id) throws Exception {
@@ -137,5 +140,63 @@ class WebSessionProfileIntegrationTest {
         mvc.perform(get("/api/users/me/nickname-availability").param("nickname", "clean_NAME").header("Authorization", "Bearer " + other))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("NICKNAME_ALREADY_EXISTS"));
         mvc.perform(get("/api/users/me/nickname-availability").param("nickname", "Clean_name")).andExpect(status().isUnauthorized());
+    }
+
+    @Test @DisplayName("t7 withdrawal removes own profile and social link and invalidates every session")
+    void t7_withdrawalInvalidatesAllSessions() throws Exception {
+        var first = login("withdraw-user");
+        var second = login("withdraw-user");
+        String access = JsonPath.read(first.getContentAsString(), "$.accessToken");
+        Number userId = JsonPath.read(first.getContentAsString(), "$.userId");
+        mvc.perform(multipart("/api/users/me").param("nickname", "To_withdraw").with(r -> { r.setMethod("PUT"); return r; })
+                .header("Authorization", "Bearer " + access)).andExpect(status().isOk());
+        var withdrawn = mvc.perform(delete("/api/users/me").header("Authorization", "Bearer " + access).header("Origin", "http://localhost:5173"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.googleUnlinkRequired").value(true)).andReturn().getResponse();
+        assertThat(withdrawn.getCookie("osee_refresh").getMaxAge()).isZero();
+        assertThat(jdbc.queryForObject("select status from users where id=?", String.class, userId)).isEqualTo("WITHDRAWN");
+        assertThat(jdbc.queryForObject("select count(*) from user_profile where user_id=?", Long.class, userId)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from social_account where user_id=?", Long.class, userId)).isZero();
+        assertThat(jdbc.queryForObject("select count(*) from refresh_token where user_id=? and revoked_at is null", Long.class, userId)).isZero();
+        assertThat(jdbc.queryForObject("select status from social_unlink_task where user_id=?", String.class, userId)).isEqualTo("USER_ACTION_REQUIRED");
+        assertThat(jdbc.queryForObject("select provider_user_id from social_unlink_task where user_id=?", String.class, userId)).isNull();
+        mvc.perform(get("/api/users/me").header("Authorization", "Bearer " + access)).andExpect(status().isUnauthorized());
+        mvc.perform(post("/api/auth/web/session").header("Origin", "http://localhost:5173").cookie(second.getCookie("osee_refresh")))
+                .andExpect(status().isNoContent());
+    }
+
+    @Test @DisplayName("t8 withdrawal requires authentication and trusted origin")
+    void t8_withdrawalRequiresAuthenticationAndOrigin() throws Exception {
+        mvc.perform(delete("/api/users/me").header("Origin", "http://localhost:5173")).andExpect(status().isUnauthorized());
+        String access = JsonPath.read(login("withdraw-origin-user").getContentAsString(), "$.accessToken");
+        mvc.perform(delete("/api/users/me").header("Authorization", "Bearer " + access)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/users/me").header("Authorization", "Bearer " + access)).andExpect(status().isOk());
+    }
+
+    @Test @DisplayName("t9 stale session responses must not clear a newer rotated cookie")
+    void t9_staleSessionDoesNotClearCookie() throws Exception {
+        var first = login("stale-cookie-user").getCookie("osee_refresh");
+        mvc.perform(post("/api/auth/web/session").header("Origin", "http://localhost:5173").cookie(first)).andExpect(status().isOk());
+        mvc.perform(post("/api/auth/web/session").header("Origin", "http://localhost:5173").cookie(first))
+                .andExpect(status().isNoContent()).andExpect(header().doesNotExist("Set-Cookie"));
+    }
+
+    @Test @DisplayName("t10 provider outage keeps withdrawal committed and unlink retry can complete")
+    void t10_externalFailureDoesNotRollbackWithdrawal() throws Exception {
+        var first = login("kakao-withdraw-user");
+        String access = JsonPath.read(first.getContentAsString(), "$.accessToken");
+        Number userId = JsonPath.read(first.getContentAsString(), "$.userId");
+        jdbc.update("update social_account set provider='KAKAO',provider_user_id='qa-kakao-unlink' where user_id=?", userId);
+        given(kakaoUnlink.unlink("qa-kakao-unlink")).willReturn(
+                com.beandoche_osee_backend.domain.auth.provider.kakao.KakaoUnlinkClient.Outcome.RETRY,
+                com.beandoche_osee_backend.domain.auth.provider.kakao.KakaoUnlinkClient.Outcome.COMPLETED);
+        mvc.perform(delete("/api/users/me").header("Authorization", "Bearer " + access).header("Origin", "http://localhost:5173"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.kakaoUnlinkPending").value(true));
+        unlinkWorker.processPending();
+        assertThat(jdbc.queryForObject("select status from social_unlink_task where user_id=?", String.class, userId)).isEqualTo("RETRY");
+        assertThat(jdbc.queryForObject("select status from users where id=?", String.class, userId)).isEqualTo("WITHDRAWN");
+        jdbc.update("update social_unlink_task set next_attempt_at=now()-interval '1 second' where user_id=?", userId);
+        unlinkWorker.processPending();
+        assertThat(jdbc.queryForObject("select status from social_unlink_task where user_id=?", String.class, userId)).isEqualTo("COMPLETED");
+        assertThat(jdbc.queryForObject("select provider_user_id from social_unlink_task where user_id=?", String.class, userId)).isNull();
     }
 }

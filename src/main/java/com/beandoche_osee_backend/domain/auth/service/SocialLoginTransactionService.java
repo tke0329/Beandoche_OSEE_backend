@@ -26,6 +26,7 @@ public class SocialLoginTransactionService {
     private final AccessTokenProvider accessTokenProvider;
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final Clock clock;
+    private final SocialUnlinkTasks unlinkTasks;
 
     public SocialLoginTransactionService(
             UserRepository userRepository,
@@ -33,17 +34,19 @@ public class SocialLoginTransactionService {
             RefreshTokenRepository refreshTokenRepository,
             AccessTokenProvider accessTokenProvider,
             RefreshTokenGenerator refreshTokenGenerator,
-            Clock clock) {
+            Clock clock, SocialUnlinkTasks unlinkTasks) {
         this.userRepository = userRepository;
         this.socialAccountRepository = socialAccountRepository;
         this.refreshTokenRepository = refreshTokenRepository;
         this.accessTokenProvider = accessTokenProvider;
         this.refreshTokenGenerator = refreshTokenGenerator;
         this.clock = clock;
+        this.unlinkTasks = unlinkTasks;
     }
 
     @Transactional
     public SocialLoginResult login(SocialProvider provider, String providerUserId) {
+        if (unlinkTasks.hasPending(provider, providerUserId)) throw new SocialLoginNotAllowedException();
         ResolvedUser resolvedUser = findOrCreateUser(provider, providerUserId);
         User user = resolvedUser.user();
         if (!user.isActive()) {
@@ -66,7 +69,7 @@ public class SocialLoginTransactionService {
 
     private ResolvedUser findOrCreateUser(SocialProvider provider, String providerUserId) {
         return socialAccountRepository.findByProviderAndProviderUserId(provider, providerUserId)
-                .map(account -> new ResolvedUser(account.getUser(), false))
+                .map(account -> new ResolvedUser(userRepository.findLocked(account.getUser().getId()).orElseThrow(SocialLoginNotAllowedException::new), false))
                 .orElseGet(() -> createUser(provider, providerUserId));
     }
 

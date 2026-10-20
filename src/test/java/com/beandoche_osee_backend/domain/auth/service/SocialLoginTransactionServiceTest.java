@@ -52,6 +52,7 @@ class SocialLoginTransactionServiceTest {
 
     @Mock
     private RefreshTokenGenerator refreshTokenGenerator;
+    @Mock private SocialUnlinkTasks unlinkTasks;
 
     private SocialLoginTransactionService service;
 
@@ -63,7 +64,7 @@ class SocialLoginTransactionServiceTest {
                 refreshTokenRepository,
                 accessTokenProvider,
                 refreshTokenGenerator,
-                Clock.fixed(NOW, ZoneOffset.UTC));
+                Clock.fixed(NOW, ZoneOffset.UTC), unlinkTasks);
     }
 
     @Test
@@ -93,6 +94,7 @@ class SocialLoginTransactionServiceTest {
     @DisplayName("t2 repeated Google login reuses the existing user")
     void t2_repeatedGoogleLoginReusesExistingUser() {
         User existingUser = activeUser(42L);
+        given(userRepository.findLocked(42L)).willReturn(Optional.of(existingUser));
         SocialAccount account = SocialAccount.link(
                 existingUser,
                 SocialProvider.GOOGLE,
@@ -128,6 +130,15 @@ class SocialLoginTransactionServiceTest {
                 .isExactlyInstanceOf(SocialLoginNotAllowedException.class)
                 .hasMessage(null);
         verify(accessTokenProvider, never()).issue(any());
+        verify(refreshTokenRepository, never()).save(any());
+    }
+
+    @Test @DisplayName("t4 pending unlink cannot revoke a newly rejoined Kakao account")
+    void t4_pendingUnlinkPreventsRejoin() {
+        given(unlinkTasks.hasPending(SocialProvider.KAKAO, "pending-kakao")).willReturn(true);
+        assertThatThrownBy(() -> service.login(SocialProvider.KAKAO, "pending-kakao"))
+                .isExactlyInstanceOf(SocialLoginNotAllowedException.class);
+        verify(userRepository, never()).save(any());
         verify(refreshTokenRepository, never()).save(any());
     }
 

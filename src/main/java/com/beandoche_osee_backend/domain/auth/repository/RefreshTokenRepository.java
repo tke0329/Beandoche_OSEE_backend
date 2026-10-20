@@ -10,6 +10,9 @@ import com.beandoche_osee_backend.domain.auth.entity.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("update RefreshToken t set t.revokedAt = :now where t.user.id = :userId and t.revokedAt is null")
+    int revokeAll(@Param("userId") Long userId, @Param("now") java.time.Instant now);
 
     Optional<RefreshToken> findByTokenHash(String tokenHash);
 
