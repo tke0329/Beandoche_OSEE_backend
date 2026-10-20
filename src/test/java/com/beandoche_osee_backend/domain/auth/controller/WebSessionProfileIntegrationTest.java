@@ -100,4 +100,21 @@ class WebSessionProfileIntegrationTest {
                 .andExpect(status().isBadRequest());
         mvc.perform(get("/api/users/me").header("Authorization", "Bearer " + access)).andExpect(jsonPath("$.profileCompleted").value(false));
     }
+
+    @Test @DisplayName("t5 blank initial nickname is generated and duplicate nickname is rejected")
+    void t5_blankInitialNicknameIsGenerated() throws Exception {
+        String access = JsonPath.read(login("auto-nickname-user").getContentAsString(), "$.accessToken");
+        var saved = mvc.perform(multipart("/api/users/me").param("nickname", "   ")
+                        .with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + access))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.profileCompleted").value(true)).andReturn().getResponse();
+        String nickname = JsonPath.read(saved.getContentAsString(), "$.nickname");
+        assertThat(nickname).matches("OSEE_[0-9]{9}");
+        mvc.perform(multipart("/api/users/me").param("nickname", "")
+                        .with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + access))
+                .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("INVALID_NICKNAME"));
+        String other = JsonPath.read(login("duplicate-auto-user").getContentAsString(), "$.accessToken");
+        mvc.perform(multipart("/api/users/me").param("nickname", nickname.toLowerCase())
+                        .with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + other))
+                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NICKNAME_ALREADY_EXISTS"));
+    }
 }
