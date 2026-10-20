@@ -16,6 +16,21 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(com.beandoche_osee_backend.domain.profile.ProfileFailure.class)
+    public ResponseEntity<ApiErrorResponse> handleProfile(com.beandoche_osee_backend.domain.profile.ProfileFailure failure) {
+        return ResponseEntity.status(failure.status()).body(ApiErrorResponse.of(failure.code(), failure.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
+    public ResponseEntity<ApiErrorResponse> handleDuplicate() {
+        return ResponseEntity.status(409).body(ApiErrorResponse.of("RESOURCE_CONFLICT", "이미 사용 중이거나 변경된 정보입니다. 다시 확인해 주세요."));
+    }
+
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleUploadSize() {
+        return ResponseEntity.badRequest().body(ApiErrorResponse.of("INVALID_PROFILE_IMAGE", "1MB 이하의 이미지를 선택해 주세요."));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException exception) {
         List<ApiErrorResponse.FieldErrorResponse> fieldErrors = exception.getBindingResult()

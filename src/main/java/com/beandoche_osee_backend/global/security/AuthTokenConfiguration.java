@@ -15,7 +15,7 @@ public class AuthTokenConfiguration {
 
     @Bean
     Clock authClock() {
-        return Clock.systemUTC();
+        return Clock.tickMillis(java.time.ZoneOffset.UTC);
     }
 
     @Bean

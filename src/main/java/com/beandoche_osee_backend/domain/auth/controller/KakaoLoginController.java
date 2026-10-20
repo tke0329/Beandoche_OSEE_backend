@@ -33,14 +33,16 @@ public class KakaoLoginController {
     private final KakaoLoginStateStore states;
     private final KakaoLoginApplicationService service;
     private final ObjectMapper mapper;
+    private final WebSessionCookies sessionCookies;
     private final SecureRandom random = new SecureRandom();
 
     public KakaoLoginController(KakaoOAuthProperties properties, KakaoLoginStateStore states,
-            KakaoLoginApplicationService service, ObjectMapper mapper) {
+            KakaoLoginApplicationService service, ObjectMapper mapper, WebSessionCookies sessionCookies) {
         this.properties = properties;
         this.states = states;
         this.service = service;
         this.mapper = mapper;
+        this.sessionCookies = sessionCookies;
     }
 
     @GetMapping("/authorize")
@@ -73,7 +75,7 @@ public class KakaoLoginController {
             return popup(Map.of("ok", true, "session", Map.of(
                     "userId", result.userId(), "newUser", result.newUser(), "tokenType", "Bearer",
                     "accessToken", result.accessToken(), "accessTokenExpiresAt", result.accessTokenExpiresAt().toString(),
-                    "sessionExpiresAt", result.sessionExpiresAt().toString())), request);
+                    "sessionExpiresAt", result.sessionExpiresAt().toString())), request, result);
         } catch (KakaoLoginException exception) {
             LOG.info("Kakao login rejected: {}", exception.code());
             return popup(Map.of("ok", false, "code", exception.code()), request);
@@ -86,6 +88,10 @@ public class KakaoLoginController {
     }
 
     private ResponseEntity<String> popup(Map<String, Object> result, HttpServletRequest request) {
+        return popup(result, request, null);
+    }
+
+    private ResponseEntity<String> popup(Map<String, Object> result, HttpServletRequest request, SocialLoginResult session) {
         byte[] bytes = new byte[24];
         random.nextBytes(bytes);
         String nonce = Base64.getEncoder().encodeToString(bytes);
@@ -95,12 +101,13 @@ public class KakaoLoginController {
                 + "<p>로그인 화면으로 돌아가 주세요. 이 창은 닫아도 됩니다.</p><script nonce=\"" + nonce
                 + "\">if(window.opener){window.opener.postMessage(" + payload + "," + origin
                 + ");window.close();}</script></html>";
-        return ResponseEntity.ok().contentType(MediaType.TEXT_HTML)
+        var response = ResponseEntity.ok().contentType(MediaType.TEXT_HTML)
                 .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .header(HttpHeaders.SET_COOKIE, cookie("", 0, request))
                 .header("Referrer-Policy", "no-referrer")
-                .header("Content-Security-Policy", "default-src 'none'; script-src 'nonce-" + nonce + "'; frame-ancestors 'none'; base-uri 'none'")
-                .body(html);
+                .header("Content-Security-Policy", "default-src 'none'; script-src 'nonce-" + nonce + "'; frame-ancestors 'none'; base-uri 'none'");
+        if (session != null) response.header(HttpHeaders.SET_COOKIE, sessionCookies.issue(session, request));
+        return response.body(html);
     }
 
     private String cookie(String value, int maxAge, HttpServletRequest request) {
