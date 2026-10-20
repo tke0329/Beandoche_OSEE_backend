@@ -29,6 +29,7 @@ public class WebSessionService {
         if (found.isEmpty()) return Optional.empty();
         var token = found.get();
         var now = clock.instant();
+        if (java.time.Duration.between(now, token.getAbsoluteExpiresAt()).getSeconds() < 1) return Optional.empty();
         if (!token.isUsableAt(now) || !token.getUser().isActive()) return Optional.empty();
         token.revoke(now);
         var issued = generator.rotate(token.getAbsoluteExpiresAt());

@@ -20,5 +20,8 @@ public record AuthTokenProperties(
         if (sessionTtl == null || sessionTtl.isZero() || sessionTtl.isNegative()) {
             throw new IllegalArgumentException("Session TTL must be positive");
         }
+        if (sessionTtl.compareTo(Duration.ofHours(48)) > 0) {
+            throw new IllegalArgumentException("Session TTL must not exceed 48 hours");
+        }
     }
 }

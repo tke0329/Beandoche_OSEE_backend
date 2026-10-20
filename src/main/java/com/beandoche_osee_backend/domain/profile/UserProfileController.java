@@ -21,7 +21,7 @@ public class UserProfileController {
 
     @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<UserProfileService.ProfileResponse> save(@AuthenticationPrincipal AuthenticatedUserPrincipal user,
-            @RequestParam String nickname, @RequestParam(required = false) MultipartFile image,
+            @RequestParam(defaultValue = "") String nickname, @RequestParam(required = false) MultipartFile image,
             @RequestParam(defaultValue = "false") boolean removeImage) {
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(profiles.save(user.userId(), nickname, image, removeImage));
     }

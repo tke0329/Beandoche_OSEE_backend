@@ -31,6 +31,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(ApiErrorResponse.of("INVALID_PROFILE_IMAGE", "1MB 이하의 이미지를 선택해 주세요."));
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MultipartException.class)
+    public ResponseEntity<ApiErrorResponse> handleMultipart() {
+        return ResponseEntity.badRequest().body(ApiErrorResponse.of("INVALID_PROFILE_IMAGE", "이미지 요청을 확인해 주세요."));
+    }
+
+    @ExceptionHandler({org.springframework.web.bind.MissingServletRequestParameterException.class,
+            org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ApiErrorResponse> handleInvalidParameter() {
+        return ResponseEntity.badRequest().body(ApiErrorResponse.of("INVALID_REQUEST", "요청 값을 확인해 주세요."));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiErrorResponse> handleValidation(MethodArgumentNotValidException exception) {
         List<ApiErrorResponse.FieldErrorResponse> fieldErrors = exception.getBindingResult()
