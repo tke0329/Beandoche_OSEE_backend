@@ -81,11 +81,11 @@ class WebSessionProfileIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.nickname").value("Osee_User"))
                 .andExpect(jsonPath("$.profileCompleted").value(true)).andExpect(jsonPath("$.imageBase64").isNotEmpty());
         mvc.perform(multipart("/api/users/me").param("nickname", "Different_Name").with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + access))
-                .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NICKNAME_CHANGE_NOT_ALLOWED"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.nicknameNextChangeAt").isEmpty());
         mvc.perform(get("/api/users/me")).andExpect(status().isUnauthorized());
         String other = JsonPath.read(login("other-profile-user").getContentAsString(), "$.accessToken");
         mvc.perform(get("/api/users/me").header("Authorization", "Bearer " + other)).andExpect(jsonPath("$.nickname").isEmpty());
-        mvc.perform(multipart("/api/users/me").param("nickname", "osee_user").with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + other))
+        mvc.perform(multipart("/api/users/me").param("nickname", "different_name").with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + other))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NICKNAME_ALREADY_EXISTS"));
     }
 
@@ -116,5 +116,26 @@ class WebSessionProfileIntegrationTest {
         mvc.perform(multipart("/api/users/me").param("nickname", nickname.toLowerCase())
                         .with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + other))
                 .andExpect(status().isConflict()).andExpect(jsonPath("$.code").value("NICKNAME_ALREADY_EXISTS"));
+    }
+
+    @Test @DisplayName("t6 nickname checks reject invalid and prohibited terms on both preview and save")
+    void t6_nicknamePolicyCannotBeBypassed() throws Exception {
+        String access = JsonPath.read(login("policy-user").getContentAsString(), "$.accessToken");
+        for (String nickname : new String[]{"FUCK", "s_e_x", "시발", "병신", "ＦｕＣＫ", "씨1발"}) {
+            mvc.perform(get("/api/users/me/nickname-availability").param("nickname", nickname).header("Authorization", "Bearer " + access))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(false)).andExpect(jsonPath("$.code").value("NICKNAME_NOT_ALLOWED"));
+            mvc.perform(multipart("/api/users/me").param("nickname", nickname).with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + access))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.code").value("NICKNAME_NOT_ALLOWED"));
+        }
+        mvc.perform(get("/api/users/me/nickname-availability").param("nickname", "a!").header("Authorization", "Bearer " + access))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("INVALID_NICKNAME"));
+        mvc.perform(multipart("/api/users/me").param("nickname", "Clean_name").with(r -> { r.setMethod("PUT"); return r; }).header("Authorization", "Bearer " + access))
+                .andExpect(status().isOk());
+        mvc.perform(get("/api/users/me/nickname-availability").param("nickname", "Clean_name").header("Authorization", "Bearer " + access))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.available").value(true));
+        String other = JsonPath.read(login("policy-other-user").getContentAsString(), "$.accessToken");
+        mvc.perform(get("/api/users/me/nickname-availability").param("nickname", "clean_NAME").header("Authorization", "Bearer " + other))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.code").value("NICKNAME_ALREADY_EXISTS"));
+        mvc.perform(get("/api/users/me/nickname-availability").param("nickname", "Clean_name")).andExpect(status().isUnauthorized());
     }
 }

@@ -25,4 +25,10 @@ public class UserProfileController {
             @RequestParam(defaultValue = "false") boolean removeImage) {
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(profiles.save(user.userId(), nickname, image, removeImage));
     }
+
+    @GetMapping("/nickname-availability")
+    public ResponseEntity<UserProfileService.NicknameAvailability> checkNickname(
+            @AuthenticationPrincipal AuthenticatedUserPrincipal user, @RequestParam String nickname) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL, "no-store").body(profiles.checkNickname(user.userId(), nickname));
+    }
 }
