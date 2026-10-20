@@ -31,7 +31,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 @WebMvcTest(KakaoLoginController.class)
 @AutoConfigureMockMvc(addFilters = false)
-@Import({KakaoLoginStateStore.class, KakaoLoginControllerTest.Config.class})
+@Import({KakaoLoginStateStore.class, KakaoLoginControllerTest.Config.class, WebSessionCookies.class})
 class KakaoLoginControllerTest {
     @Autowired private MockMvc mvc;
     @MockitoBean private KakaoLoginApplicationService service;

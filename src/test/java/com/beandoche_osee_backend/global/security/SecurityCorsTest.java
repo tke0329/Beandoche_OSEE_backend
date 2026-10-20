@@ -33,7 +33,7 @@ class SecurityCorsTest {
                         .header("Access-Control-Request-Headers", "content-type"))
                 .andExpect(status().isOk()).andReturn().getResponse();
         assertThat(response.getHeader("Access-Control-Allow-Origin")).isEqualTo("http://localhost:5173");
-        assertThat(response.getHeader("Access-Control-Allow-Credentials")).isNull();
+        assertThat(response.getHeader("Access-Control-Allow-Credentials")).isEqualTo("true");
     }
 
     @Test
