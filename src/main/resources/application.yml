@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 1MB
+      max-request-size: 2MB
   application:
     name: beandoche_osee_backend
   config:
@@ -12,11 +16,25 @@ spring:
       ddl-auto: validate
     open-in-view: false
 
+# Tomcat otherwise logs the full contents of malformed third-party cookies at INFO.
+# Keep application/security warnings enabled without leaking cookie values.
+logging:
+  level:
+    org.apache.tomcat.util.http.parser.Cookie: WARN
+
 app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
 
 auth:
+  web:
+    secure-cookie: ${AUTH_COOKIE_SECURE:false}
+  kakao:
+    admin-key: ${KAKAO_ADMIN_KEY:}
+    rest-api-key: ${KAKAO_OAUTH_REST_API_KEY:}
+    client-secret: ${KAKAO_OAUTH_CLIENT_SECRET:}
+    redirect-uri: ${KAKAO_OAUTH_REDIRECT_URI:http://localhost:8080/api/auth/social/kakao/callback}
+    frontend-origin: ${OSEE_FRONTEND_ORIGIN:http://localhost:5173}
   token:
     jwt-secret: ${AUTH_JWT_SECRET:}
     access-token-ttl: ${AUTH_ACCESS_TOKEN_TTL:15m}

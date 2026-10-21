@@ -31,9 +31,14 @@ public class AccessTokenProvider {
     }
 
     public String issue(Long userId) {
+        return issue(userId, clock.instant().plus(accessTokenTtl));
+    }
+
+    public String issue(Long userId, Instant absoluteExpiry) {
         Objects.requireNonNull(userId);
         Instant issuedAt = clock.instant();
         Instant expiresAt = issuedAt.plus(accessTokenTtl);
+        if (absoluteExpiry.isBefore(expiresAt)) expiresAt = absoluteExpiry;
 
         return Jwts.builder()
                 .subject(userId.toString())
