@@ -32,8 +32,10 @@ public class UserWithdrawalService {
         tokens.revokeAll(userId, now);
         profiles.deleteById(userId);
         accounts.deleteAll(linked);
-        return new Result(true, linked.stream().anyMatch(a -> a.getProvider() == SocialProvider.GOOGLE), linked.stream().anyMatch(a -> a.getProvider() == SocialProvider.KAKAO));
+        return new Result(true, linked.stream().anyMatch(a -> a.getProvider() == SocialProvider.GOOGLE),
+                linked.stream().anyMatch(a -> a.getProvider() == SocialProvider.KAKAO),
+                linked.stream().filter(a -> a.getProvider() == SocialProvider.GOOGLE).map(a -> a.getProviderUserId()).toList());
     }
 
-    public record Result(boolean withdrawn, boolean googleUnlinkRequired, boolean kakaoUnlinkPending) { }
+    public record Result(boolean withdrawn, boolean googleUnlinkRequired, boolean kakaoUnlinkPending, java.util.List<String> googleSubjects) { }
 }

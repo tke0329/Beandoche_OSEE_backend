@@ -20,10 +20,13 @@ public class WebAuthController {
     private final WebSessionService sessions;
     private final WebSessionCookies cookies;
     private final List<String> origins;
+    private final com.beandoche_osee_backend.domain.auth.service.GoogleUnlinkCompletionService unlinkCompletion;
 
     public WebAuthController(GoogleLoginService google, WebSessionService sessions, WebSessionCookies cookies,
-            @Value("${app.cors.allowed-origins:http://localhost:5173}") List<String> origins) {
+            @Value("${app.cors.allowed-origins:http://localhost:5173}") List<String> origins,
+            com.beandoche_osee_backend.domain.auth.service.GoogleUnlinkCompletionService unlinkCompletion) {
         this.google = google; this.sessions = sessions; this.cookies = cookies; this.origins = origins;
+        this.unlinkCompletion = unlinkCompletion;
     }
 
     @PostMapping("/google")
@@ -45,6 +48,13 @@ public class WebAuthController {
         if (!trusted(request)) return denied();
         sessions.logout(token);
         return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, cookies.clear(request)).header(HttpHeaders.CACHE_CONTROL, "no-store").build();
+    }
+
+    @PostMapping("/withdrawal/google-complete")
+    public ResponseEntity<?> confirmGoogleUnlink(HttpServletRequest request) {
+        if (!trusted(request)) return denied();
+        unlinkCompletion.confirm(request.getHeader(HttpHeaders.AUTHORIZATION));
+        return ResponseEntity.noContent().header(HttpHeaders.CACHE_CONTROL, "no-store").build();
     }
 
     private ResponseEntity<?> authenticated(SocialLoginResult result, HttpServletRequest request) {

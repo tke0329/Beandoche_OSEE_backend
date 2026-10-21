@@ -34,6 +34,10 @@ public class SocialUnlinkTasks {
         jdbc.update("update social_unlink_task set status='COMPLETED',provider_user_id=null,last_error_code=null,updated_at=? where id=?", Timestamp.from(now), id);
     }
 
+    public void confirmGoogleCompletion(Long userId, Instant now) {
+        jdbc.update("update social_unlink_task set status='COMPLETED',last_error_code=null,updated_at=? where user_id=? and provider='GOOGLE' and status='USER_ACTION_REQUIRED'", Timestamp.from(now), userId);
+    }
+
     public void retry(Task task, boolean configurationRequired, Instant now) {
         int attempts = task.attempts() + (configurationRequired ? 0 : 1);
         String status = configurationRequired ? "CONFIG_REQUIRED" : attempts >= 10 ? "USER_ACTION_REQUIRED" : "RETRY";

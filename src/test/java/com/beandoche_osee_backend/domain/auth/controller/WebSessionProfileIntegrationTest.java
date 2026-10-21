@@ -199,4 +199,29 @@ class WebSessionProfileIntegrationTest {
         assertThat(jdbc.queryForObject("select status from social_unlink_task where user_id=?", String.class, userId)).isEqualTo("COMPLETED");
         assertThat(jdbc.queryForObject("select provider_user_id from social_unlink_task where user_id=?", String.class, userId)).isNull();
     }
+
+    @Test @DisplayName("t11 Google browser completion accepts only the withdrawn owner's signed token")
+    void t11_googleCompletionCannotRestoreAccessOrAffectOthers() throws Exception {
+        var first = login("google-auto-unlink-user");
+        String access = JsonPath.read(first.getContentAsString(), "$.accessToken");
+        Number userId = JsonPath.read(first.getContentAsString(), "$.userId");
+        String other = JsonPath.read(login("google-auto-other").getContentAsString(), "$.accessToken");
+        String complete = "/api/auth/web/withdrawal/google-complete";
+        mvc.perform(post(complete).header("Authorization", "Bearer " + access).header("Origin", "http://localhost:5173"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(delete("/api/users/me").header("Authorization", "Bearer " + access).header("Origin", "http://localhost:5173"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.googleSubjects[0]").value("google-auto-unlink-user"));
+        mvc.perform(post(complete).header("Authorization", "Bearer " + other).header("Origin", "http://localhost:5173"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post(complete).header("Origin", "http://localhost:5173")).andExpect(status().isUnauthorized());
+        mvc.perform(post(complete).header("Authorization", "Bearer forged").header("Origin", "http://localhost:5173"))
+                .andExpect(status().isUnauthorized());
+        mvc.perform(post(complete).header("Authorization", "Bearer " + access)).andExpect(status().isForbidden());
+        assertThat(jdbc.queryForObject("select status from social_unlink_task where user_id=?", String.class, userId)).isEqualTo("USER_ACTION_REQUIRED");
+        mvc.perform(post(complete).header("Authorization", "Bearer " + access).header("Origin", "http://localhost:5173"))
+                .andExpect(status().isNoContent());
+        assertThat(jdbc.queryForObject("select status from social_unlink_task where user_id=?", String.class, userId)).isEqualTo("COMPLETED");
+        mvc.perform(get("/api/users/me").header("Authorization", "Bearer " + access)).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/users/me").header("Authorization", "Bearer " + other)).andExpect(status().isOk());
+    }
 }
