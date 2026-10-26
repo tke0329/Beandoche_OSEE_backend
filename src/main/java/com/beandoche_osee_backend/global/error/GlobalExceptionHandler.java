@@ -19,7 +19,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(com.beandoche_osee_backend.domain.avatar.AvatarFailure.class)
     public ResponseEntity<ApiErrorResponse> handleAvatar(com.beandoche_osee_backend.domain.avatar.AvatarFailure failure) {
-        return ResponseEntity.status(failure.status()).body(ApiErrorResponse.of(failure.code(), failure.getMessage()));
+        LOG.info("Avatar request rejected (code={}, status={})", failure.code(), failure.status());
+        return ResponseEntity.status(failure.status()).header(org.springframework.http.HttpHeaders.CACHE_CONTROL, "no-store")
+                .body(ApiErrorResponse.of(failure.code(), failure.getMessage()));
+    }
+
+    @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ApiErrorResponse> handleUnsupportedMediaType() {
+        LOG.info("Request rejected (code=UNSUPPORTED_MEDIA_TYPE)");
+        return ResponseEntity.status(415).body(ApiErrorResponse.of("UNSUPPORTED_MEDIA_TYPE", "JSON 형식으로 요청해 주세요."));
     }
 
     @ExceptionHandler(org.springframework.dao.TransientDataAccessException.class)
@@ -61,6 +69,7 @@ public class GlobalExceptionHandler {
                 .stream()
                 .map(this::toFieldError)
                 .toList();
+        LOG.info("Request rejected (code=INVALID_REQUEST, fieldCount={})", fieldErrors.size());
         return ResponseEntity.badRequest().body(new ApiErrorResponse(
                 "INVALID_REQUEST",
                 "요청 값을 확인해 주세요.",

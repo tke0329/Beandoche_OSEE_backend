@@ -11,8 +11,11 @@ import com.beandoche_osee_backend.domain.auth.provider.google.GoogleIdentity;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
@@ -184,7 +187,7 @@ class AvatarInputIntegrationTest {
         mvc.perform(get("/api/users/me/avatar").header("Authorization", "Bearer " + token)).andExpect(status().isUnauthorized());
     }
 
-    @Test @DisplayName("t9 DB는 중복 버전과 잘못된 피부색을 차단한다")
+    @Test @DisplayName("t9 DB는 비정상 치수와 피부색 및 결과 없는 완료를 차단한다")
     void t9_databaseConstraintsRejectInvalidData() throws Exception {
         String token = login("avatar-db");
         String id = JsonPath.read(save(token, 800), "$.generationId");
@@ -193,5 +196,59 @@ class AvatarInputIntegrationTest {
                 .isInstanceOf(DataIntegrityViolationException.class);
         assertThatThrownBy(() -> jdbc.update("update avatar_generation_request set status='COMPLETED' where id=?::uuid", id))
                 .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("insert into avatar_profile(user_id,skin_color_hex,appearance_version,updated_at) values (?,'bad',1,now())", userId))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test @DisplayName("t10 동시 동일 요청은 하나의 입력 버전만 생성한다")
+    void t10_concurrentIdenticalRequestsCreateOneVersion() throws Exception {
+        String token = login("avatar-concurrent");
+        var start = new java.util.concurrent.CountDownLatch(1);
+        try (var executor = java.util.concurrent.Executors.newFixedThreadPool(2)) {
+            java.util.concurrent.Callable<String> operation = () -> {
+                start.await();
+                return save(token, 800);
+            };
+            var first = executor.submit(operation);
+            var second = executor.submit(operation);
+            start.countDown();
+            String firstId = JsonPath.read(first.get(15, java.util.concurrent.TimeUnit.SECONDS), "$.generationId");
+            String secondId = JsonPath.read(second.get(15, java.util.concurrent.TimeUnit.SECONDS), "$.generationId");
+            assertThat(firstId).isEqualTo(secondId);
+        }
+    }
+
+    @Test @DisplayName("t11 선택 성별 누락과 동일 피부색 재전송을 안전하게 처리한다")
+    void t11_optionalGenderAndRepeatedColorAreSupported() throws Exception {
+        String token = login("avatar-optional");
+        mvc.perform(put("/api/users/me/body-profile").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body(800).replace("\"gender\":\"MALE\",", "")))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.gender").isEmpty());
+        for (int i = 0; i < 2; i++) {
+            mvc.perform(patch("/api/users/me/avatar/appearance").header("Authorization", "Bearer " + token)
+                            .contentType(MediaType.APPLICATION_JSON).content("{\"skinColorHex\":\"#FF00FF\"}"))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.appearanceVersion").value(1));
+        }
+    }
+
+    @Test @DisplayName("t12 검증 실패의 신체 수치를 중복 예외 로그에 남기지 않는다")
+    @ExtendWith(OutputCaptureExtension.class)
+    void t12_validationLogsDoNotExposeRejectedMeasurements(CapturedOutput output) throws Exception {
+        String token = login("avatar-log-privacy");
+        var response = mvc.perform(put("/api/users/me/body-profile").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON).content(body(800).replace("1750", "1750.5")))
+                .andExpect(status().isBadRequest()).andReturn().getResponse();
+        assertThat(output.getAll()).doesNotContain("rejected value [1750.5]");
+        assertThat(response.getContentAsString()).doesNotContain("1750.5");
+    }
+
+    @Test @DisplayName("t13 지원하지 않는 본문 형식도 일관된 오류 응답을 반환한다")
+    void t13_unsupportedMediaTypeUsesTheApiErrorContract() throws Exception {
+        String token = login("avatar-content-type");
+        mvc.perform(put("/api/users/me/body-profile").header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.TEXT_PLAIN).content(body(800)))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.code").value("UNSUPPORTED_MEDIA_TYPE"))
+                .andExpect(jsonPath("$.fieldErrors").isArray());
     }
 }

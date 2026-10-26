@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
+import jakarta.validation.Validator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
@@ -16,16 +17,19 @@ public class AvatarInputService {
     private final UserRepository users;
     private final AvatarInputStore store;
     private final Clock clock;
+    private final Validator validator;
 
-    public AvatarInputService(UserRepository users, AvatarInputStore store, Clock clock) {
+    public AvatarInputService(UserRepository users, AvatarInputStore store, Clock clock, Validator validator) {
         this.users = users;
         this.store = store;
         this.clock = clock;
+        this.validator = validator;
     }
 
     @Transactional
     public BodyView saveBody(long userId, BodyRequest request) {
         lockActiveUser(userId);
+        validate(request, "INVALID_BODY_MEASUREMENT");
         var previous = store.body(userId);
         var measurements = request.measurements();
         var gender = request.normalizedGender();
@@ -57,6 +61,7 @@ public class AvatarInputService {
     @Transactional
     public AvatarView saveAppearance(long userId, AppearanceRequest request) {
         lockActiveUser(userId);
+        validate(request, "INVALID_AVATAR_APPEARANCE");
         store.saveAppearance(userId, request.skinColorHex().toUpperCase(Locale.ROOT), clock.instant());
         return avatarView(userId);
     }
@@ -93,6 +98,12 @@ public class AvatarInputService {
 
     private void lockActiveUser(long userId) {
         users.findLocked(userId).filter(user -> user.isActive()).orElseThrow(AvatarInputService::denied);
+    }
+
+    private void validate(Object request, String code) {
+        if (request == null || !validator.validate(request).isEmpty()) {
+            throw new AvatarFailure(code, "입력 형식과 단위를 확인해 주세요.", 400);
+        }
     }
 
     private void requireActiveUser(long userId) {
