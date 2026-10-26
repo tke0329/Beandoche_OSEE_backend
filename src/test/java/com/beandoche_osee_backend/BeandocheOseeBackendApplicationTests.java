@@ -17,6 +17,8 @@ import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
 })
 class BeandocheOseeBackendApplicationTests {
     @MockitoBean
+    private com.beandoche_osee_backend.domain.avatar.AvatarInputStore avatarInputStore;
+    @MockitoBean
     private com.beandoche_osee_backend.domain.auth.service.SocialUnlinkTasks socialUnlinkTasks;
 
     @MockitoBean
