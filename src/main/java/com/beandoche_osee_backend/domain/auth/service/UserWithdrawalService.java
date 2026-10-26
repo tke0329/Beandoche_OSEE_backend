@@ -16,10 +16,13 @@ public class UserWithdrawalService {
     private final SocialAccountRepository accounts;
     private final UserProfileRepository profiles;
     private final SocialUnlinkTasks tasks;
+    private final com.beandoche_osee_backend.domain.avatar.AvatarInputStore avatarInputs;
     private final Clock clock;
     public UserWithdrawalService(UserRepository users, RefreshTokenRepository tokens, SocialAccountRepository accounts,
-            UserProfileRepository profiles, SocialUnlinkTasks tasks, Clock clock) {
+            UserProfileRepository profiles, SocialUnlinkTasks tasks, Clock clock,
+            com.beandoche_osee_backend.domain.avatar.AvatarInputStore avatarInputs) {
         this.users = users; this.tokens = tokens; this.accounts = accounts; this.profiles = profiles; this.tasks = tasks; this.clock = clock;
+        this.avatarInputs = avatarInputs;
     }
 
     @Transactional
@@ -31,6 +34,7 @@ public class UserWithdrawalService {
         user.withdraw(now);
         tokens.revokeAll(userId, now);
         profiles.deleteById(userId);
+        avatarInputs.deleteUserData(userId);
         accounts.deleteAll(linked);
         return new Result(true, linked.stream().anyMatch(a -> a.getProvider() == SocialProvider.GOOGLE),
                 linked.stream().anyMatch(a -> a.getProvider() == SocialProvider.KAKAO),

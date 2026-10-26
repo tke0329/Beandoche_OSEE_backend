@@ -1,4 +1,8 @@
 spring:
+  mvc:
+    # DevTools otherwise logs rejected request values in resolved exception messages.
+    # Application handlers record safe codes/counts; unhandled errors remain enabled.
+    log-resolved-exception: false
   servlet:
     multipart:
       max-file-size: 1MB
