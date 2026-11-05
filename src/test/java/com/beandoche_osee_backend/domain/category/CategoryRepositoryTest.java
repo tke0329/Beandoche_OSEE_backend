@@ -71,7 +71,7 @@ class CategoryRepositoryTest {
         //When : 검증할 조회 메서드 실행
         List<Category> categories = categoryRepository.findActiveCategories();
 
-        //Then : 활성 황목은 포함, 비활성 홤목은 제외
+        //Then : 활성 항목은 포함, 비활성 항목은 제외
         assertThat(categories)
                 .extracting(Category::getCode)
                 .contains("TEST_ACTIVE")
@@ -81,5 +81,45 @@ class CategoryRepositoryTest {
                 .allMatch(Category::isActive);
 
 
+    }
+    @Test
+    @DisplayName("t2 표시 순서가 같으면 ID 순으로 정렬한다")
+    void t2_ordersByDisplayOrderThenId() {
+        Long firstId = insertCategory("TEST_ORDER_FIRST", 20);
+        Long secondId = insertCategory("TEST_ORDER_SECOND", 20);
+        insertCategory("TEST_ORDER_EARLIER", 10);
+
+        var result = categoryRepository.findActiveCategories().stream()
+                .filter(category -> category.getCode().startsWith("TEST_ORDER_"))
+                .toList();
+
+        assertThat(result).extracting(Category::getCode)
+                .containsExactly("TEST_ORDER_EARLIER", "TEST_ORDER_FIRST", "TEST_ORDER_SECOND");
+        assertThat(firstId).isLessThan(secondId);
+    }
+
+    @Test
+    @DisplayName("t3 하위 카테고리의 부모 관계를 조회한다")
+    void t3_loadsParentRelationship() {
+        Long parentId = insertCategory("TEST_PARENT", 1);
+        jdbcTemplate.update("""
+                INSERT INTO category (parent_id, code, name, display_order, is_active)
+                VALUES (?, ?, ?, ?, ?)
+                """, parentId, "TEST_CHILD", "테스트 자식", 1, true);
+
+        var child = categoryRepository.findActiveCategories().stream()
+                .filter(category -> category.getCode().equals("TEST_CHILD"))
+                .findFirst().orElseThrow();
+
+        assertThat(child.getParent().getId()).isEqualTo(parentId);
+        assertThat(child.getParent().getCode()).isEqualTo("TEST_PARENT");
+    }
+
+    private Long insertCategory(String code, int order) {
+        return jdbcTemplate.queryForObject("""
+                INSERT INTO category (code, name, display_order, is_active)
+                VALUES (?, ?, ?, true)
+                RETURNING id
+                """, Long.class, code, "테스트 카테고리", order);
     }
 }

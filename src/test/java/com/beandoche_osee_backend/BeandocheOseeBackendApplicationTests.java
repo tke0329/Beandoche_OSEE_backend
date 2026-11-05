@@ -8,6 +8,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import com.beandoche_osee_backend.domain.auth.repository.RefreshTokenRepository;
 import com.beandoche_osee_backend.domain.auth.repository.SocialAccountRepository;
 import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
+import com.beandoche_osee_backend.domain.category.repository.CategoryRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -16,6 +17,9 @@ import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
                 + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
 })
 class BeandocheOseeBackendApplicationTests {
+    @MockitoBean
+    private CategoryRepository categoryRepository;
+
     @MockitoBean
     private com.beandoche_osee_backend.domain.avatar.AvatarInputStore avatarInputStore;
     @MockitoBean
