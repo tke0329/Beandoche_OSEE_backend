@@ -2,6 +2,22 @@
 
 Java 21, PostgreSQL, Flyway를 사용한다. `.env.example`을 로컬 `.env`로 복사하고 비밀값을 설정한다. 실제 `.env`는 커밋하지 않는다.
 
+## 의류 기본 정보 조회
+
+두 API 모두 기존 Bearer 인증이 필요하다. `V2611041300` 마이그레이션이 `garment` 테이블을 생성한다.
+
+| 메서드 | 경로 | 기능 |
+| --- | --- | --- |
+| GET | `/api/garments` | 활성 상품의 기본 정보 페이지 조회 |
+| GET | `/api/garments/{id}` | 활성 상품의 공통 상세 정보 조회 |
+
+- 목록 입력: `categoryCode`는 선택이며 생략 시 전체 활성 카테고리, `page` 기본값은 `0`, `size` 기본값은 `20`(1~100), `sort`는 `LATEST`만 지원한다.
+- 정렬은 생성 시각 내림차순이며 동률이면 ID 내림차순이다. 대분류를 선택하면 활성 자손의 상품도 포함한다.
+- 목록 응답: `content`, `page`, `size`, `totalElements`, `totalPages`. 각 상품은 `id`, `categoryId`, `categoryCode`, `categoryName`, `name`, `thumbnailUrl`을 반환한다.
+- 상세 응답은 상품 요약 필드에 `description`, `createdAt`, `updatedAt`을 추가한다. 시각은 ISO 8601 형식이다.
+- `ACTIVE` 상품만 노출하고 비활성 카테고리 또는 비활성 조상 아래 상품은 제외한다. 조회 불가 상품은 `GARMENT_NOT_FOUND`(404), 조회 불가 카테고리는 `CATEGORY_NOT_FOUND`(404), 잘못된 페이지·정렬은 `INVALID_REQUEST`(400)로 응답한다.
+- 이번 단계는 기본 상품 조회만 구현한다. 브랜드는 1차 범위에서 제외하며 색상·사이즈·소재·실측·3D 모델 정보는 후속 구현 후 응답을 확장한다. 상품 생성·수정 및 활성화 API는 아직 제공하지 않는다.
+
 ## 아바타용 신체정보와 JSON 입력
 
 이 단계는 **신체정보 저장 → 버전별 입력 스냅샷 → 모델링용 중립 JSON 제공**까지 구현한다. MakeHuman 실행, 슬라이더 파라미터 추정, 프론트, 의류, 모델 파일 업로드·다운로드는 포함하지 않는다. 신규 Flyway `V2610261200`이 `body_profile`, `avatar_profile`, `avatar_generation_request`를 추가한다.

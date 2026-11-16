@@ -9,6 +9,7 @@ import com.beandoche_osee_backend.domain.auth.repository.RefreshTokenRepository;
 import com.beandoche_osee_backend.domain.auth.repository.SocialAccountRepository;
 import com.beandoche_osee_backend.domain.auth.repository.UserRepository;
 import com.beandoche_osee_backend.domain.category.repository.CategoryRepository;
+import com.beandoche_osee_backend.domain.garment.repository.GarmentRepository;
 
 @SpringBootTest(properties = {
         "spring.autoconfigure.exclude="
@@ -17,6 +18,9 @@ import com.beandoche_osee_backend.domain.category.repository.CategoryRepository;
                 + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
 })
 class BeandocheOseeBackendApplicationTests {
+    @MockitoBean
+    private GarmentRepository garmentRepository;
+
     @MockitoBean
     private CategoryRepository categoryRepository;
 
