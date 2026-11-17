@@ -1,0 +1,17 @@
+INSERT INTO measurement_definition (code, name, default_unit, measurement_basis, description) VALUES
+('TOTAL_LENGTH', '총장', 'mm', 'LENGTH', '의류를 펼친 상태에서 상단 기준점부터 밑단까지의 길이를 잽니다.'),
+('SHOULDER_WIDTH', '어깨너비', 'mm', 'LENGTH', '양쪽 어깨 봉제선 끝 사이의 직선 거리를 잽니다.'),
+('CHEST_WIDTH', '가슴단면', 'mm', 'FLAT_WIDTH', '의류를 펼쳐 겨드랑이 아래를 수평으로 잰 단면 너비입니다.'),
+('SLEEVE_LENGTH', '소매길이', 'mm', 'LENGTH', '어깨 봉제선부터 소매 끝까지의 길이를 잽니다.'),
+('HEM_WIDTH', '밑단단면', 'mm', 'FLAT_WIDTH', '밑단을 펼쳐 양 끝 사이의 단면 너비를 잽니다.'),
+('CUFF_WIDTH', '소매단면', 'mm', 'FLAT_WIDTH', '소매 끝을 펼쳐 양 끝 사이의 단면 너비를 잽니다.'),
+('WAIST_WIDTH', '허리단면', 'mm', 'FLAT_WIDTH', '허리 밴드를 펼쳐 양 끝 사이의 단면 너비를 잽니다.'),
+('HIP_WIDTH', '엉덩이단면', 'mm', 'FLAT_WIDTH', '엉덩이 부분의 가장 넓은 위치를 수평으로 잽니다.'),
+('THIGH_WIDTH', '허벅지단면', 'mm', 'FLAT_WIDTH', '밑위 아래 허벅지 부분의 단면 너비를 잽니다.'),
+('FRONT_RISE', '앞밑위', 'mm', 'LENGTH', '앞면 허리 상단부터 가랑이 봉제선까지의 길이를 잽니다.'),
+('BACK_RISE', '뒷밑위', 'mm', 'LENGTH', '뒷면 허리 상단부터 가랑이 봉제선까지의 길이를 잽니다.'),
+('INSEAM_LENGTH', '안쪽 다리길이', 'mm', 'LENGTH', '가랑이 봉제선부터 바지 밑단까지 안쪽 봉제선을 따라 잽니다.'),
+('LEG_OPENING_WIDTH', '바지 밑단단면', 'mm', 'FLAT_WIDTH', '바지 한쪽 밑단을 펼쳐 단면 너비를 잽니다.'),
+('RECOMMENDED_FOOT_LENGTH', '권장 발길이', 'mm', 'LENGTH', '상품이 제공하는 권장 발길이 수치를 사용합니다. 신발 내부 길이와 구분합니다.'),
+('FOOT_WIDTH', '발볼너비', 'mm', 'LENGTH', '발볼의 가장 넓은 양 끝 사이의 직선 너비를 잽니다. 둘레와 구분합니다.'),
+('HEEL_HEIGHT', '굽높이', 'mm', 'LENGTH', '신발 뒤축의 지면부터 굽 상단까지 수직 높이를 잽니다.');

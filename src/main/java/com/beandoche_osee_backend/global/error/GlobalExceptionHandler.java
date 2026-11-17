@@ -17,6 +17,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class GlobalExceptionHandler {
     private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(com.beandoche_osee_backend.domain.garment.service.GarmentFailure.class)
+    public ResponseEntity<ApiErrorResponse> handleGarment(com.beandoche_osee_backend.domain.garment.service.GarmentFailure failure) {
+        return ResponseEntity.status(failure.status()).body(ApiErrorResponse.of(failure.code(), failure.getMessage()));
+    }
+
     @ExceptionHandler(com.beandoche_osee_backend.domain.avatar.AvatarFailure.class)
     public ResponseEntity<ApiErrorResponse> handleAvatar(com.beandoche_osee_backend.domain.avatar.AvatarFailure failure) {
         LOG.info("Avatar request rejected (code={}, status={})", failure.code(), failure.status());
