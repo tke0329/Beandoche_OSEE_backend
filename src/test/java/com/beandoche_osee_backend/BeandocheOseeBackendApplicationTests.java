@@ -19,6 +19,9 @@ import com.beandoche_osee_backend.domain.garment.repository.GarmentRepository;
 })
 class BeandocheOseeBackendApplicationTests {
     @MockitoBean
+    private com.beandoche_osee_backend.domain.garment.catalog.CatalogStore catalogStore;
+
+    @MockitoBean
     private GarmentRepository garmentRepository;
 
     @MockitoBean
