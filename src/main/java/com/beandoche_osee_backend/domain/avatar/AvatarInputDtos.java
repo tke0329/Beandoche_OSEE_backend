@@ -20,22 +20,26 @@ public final class AvatarInputDtos {
             @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 0) BigDecimal waistCircumferenceMm,
             @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 0) BigDecimal hipCircumferenceMm,
             @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 0) BigDecimal thighCircumferenceMm,
-            @NotNull @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 0) BigDecimal inseamMm) {
+            @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 0) BigDecimal inseamMm,
+            @DecimalMin(value = "0", inclusive = false) @Digits(integer = 9, fraction = 0) BigDecimal underbustCircumferenceMm) {
         public String normalizedGender() {
             return gender == null ? null : gender.toUpperCase(Locale.ROOT);
         }
 
-        public Measurements measurements() {
+        public Measurements measurements(Integer previousInseamMm) {
             return new Measurements(heightMm.intValueExact(), weightKg.stripTrailingZeros(),
                     chestCircumferenceMm.intValueExact(), waistCircumferenceMm.intValueExact(),
-                    hipCircumferenceMm.intValueExact(), thighCircumferenceMm.intValueExact(), inseamMm.intValueExact());
+                    hipCircumferenceMm.intValueExact(), thighCircumferenceMm.intValueExact(),
+                    inseamMm == null ? previousInseamMm : Integer.valueOf(inseamMm.intValueExact()),
+                    underbustCircumferenceMm == null ? null : underbustCircumferenceMm.intValueExact());
         }
     }
 
     public record AppearanceRequest(@NotNull @Pattern(regexp = "#[0-9a-fA-F]{6}") String skinColorHex) { }
 
     public record Measurements(int heightMm, BigDecimal weightKg, int chestCircumferenceMm,
-            int waistCircumferenceMm, int hipCircumferenceMm, int thighCircumferenceMm, int inseamMm) { }
+            int waistCircumferenceMm, int hipCircumferenceMm, int thighCircumferenceMm,
+            Integer inseamMm, Integer underbustCircumferenceMm) { }
 
     public record BodyView(long bodyVersion, String gender, Measurements measurements,
             UUID generationId, String generationStatus, Instant updatedAt) { }

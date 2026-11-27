@@ -44,7 +44,7 @@ class AvatarInputServiceTest {
     private BodyRequest request(int height) {
         return new BodyRequest("male", BigDecimal.valueOf(height), new BigDecimal("70.000"),
                 new BigDecimal("950"), new BigDecimal("800"), new BigDecimal("980"),
-                new BigDecimal("550"), new BigDecimal("800"));
+                new BigDecimal("550"), new BigDecimal("800"), null);
     }
 
     @Test @DisplayName("t1 비활성 사용자는 저장소에 접근하지 못한다")
@@ -59,8 +59,8 @@ class AvatarInputServiceTest {
         given(users.findLocked(7L)).willReturn(Optional.of(User.active(now)));
         var request = request(1750);
         var id = UUID.randomUUID();
-        given(store.body(7L)).willReturn(Optional.of(new Body(3, "MALE", request.measurements(), now)));
-        given(store.latestGeneration(7L)).willReturn(Optional.of(new Generation(id, 3, 1, "PENDING", "MALE", request.measurements())));
+        given(store.body(7L)).willReturn(Optional.of(new Body(3, "MALE", request.measurements(null), now)));
+        given(store.latestGeneration(7L)).willReturn(Optional.of(new Generation(id, 3, 1, "PENDING", "MALE", request.measurements(null))));
         var view = service().saveBody(7L, request);
         assertThat(view.bodyVersion()).isEqualTo(3);
         assertThat(view.generationId()).isEqualTo(id);
@@ -71,7 +71,7 @@ class AvatarInputServiceTest {
     @Test @DisplayName("t3 변경된 입력은 다음 버전의 대기 요청으로 저장한다")
     void t3_changedInputCreatesNextPendingVersion() {
         given(users.findLocked(7L)).willReturn(Optional.of(User.active(now)));
-        given(store.body(7L)).willReturn(Optional.of(new Body(3, "MALE", request(1750).measurements(), now)));
+        given(store.body(7L)).willReturn(Optional.of(new Body(3, "MALE", request(1750).measurements(null), now)));
         var view = service().saveBody(7L, request(1760));
         assertThat(view.bodyVersion()).isEqualTo(4);
         assertThat(view.generationStatus()).isEqualTo("PENDING");

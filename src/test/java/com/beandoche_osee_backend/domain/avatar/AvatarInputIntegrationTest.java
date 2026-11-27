@@ -68,6 +68,44 @@ class AvatarInputIntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
     }
 
+    private String bodyWithUnderbust(int underbust) {
+        return body(800).replace("MALE", "FEMALE")
+                .replace("\"inseamMm\":800", "\"underbustCircumferenceMm\":" + underbust);
+    }
+
+    @Test @DisplayName("t14 인심 없이 등록하고 밑가슴둘레를 재조회한다")
+    void t14_savesUnderbustWithoutLegacyInseam() throws Exception {
+        String token = login("avatar-underbust");
+        var auth = "Bearer " + token;
+        var saved = mvc.perform(put("/api/users/me/body-profile").header("Authorization", auth)
+                        .contentType(MediaType.APPLICATION_JSON).content(bodyWithUnderbust(750)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.measurements.underbustCircumferenceMm").value(750))
+                .andReturn().getResponse().getContentAsString();
+        String id = JsonPath.read(saved, "$.generationId");
+        mvc.perform(get("/api/users/me/avatar/generations/" + id + "/input.json").header("Authorization", auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.measurements.inseamMm").doesNotExist())
+                .andExpect(jsonPath("$.measurements.underbustCircumferenceMm").value(750));
+        mvc.perform(get("/api/users/me/body-profile").header("Authorization", auth))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.measurements.underbustCircumferenceMm").value(750));
+    }
+
+    @Test @DisplayName("t15 숨긴 기존 인심은 보존하고 잘못된 밑가슴둘레는 거부한다")
+    void t15_preservesLegacyInseamAndValidatesUnderbust() throws Exception {
+        String token = login("avatar-legacy-inseam");
+        save(token, 800);
+        var auth = "Bearer " + token;
+        mvc.perform(put("/api/users/me/body-profile").header("Authorization", auth)
+                        .contentType(MediaType.APPLICATION_JSON).content(bodyWithUnderbust(950)))
+                .andExpect(status().isBadRequest());
+        mvc.perform(put("/api/users/me/body-profile").header("Authorization", auth)
+                        .contentType(MediaType.APPLICATION_JSON).content(bodyWithUnderbust(750)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.measurements.inseamMm").value(800));
+    }
+
     @Test @DisplayName("t1 신체정보와 피부색 API는 인증이 필요하다")
     void t1_authenticationIsRequired() throws Exception {
         mvc.perform(get("/api/users/me/body-profile")).andExpect(status().isUnauthorized());
