@@ -28,14 +28,17 @@ public class AvatarInputStore {
         Measurements m = body.measurements();
         jdbc.update("""
                 insert into body_profile(user_id,body_version,gender,height_mm,weight_kg,chest_circumference_mm,
-                    waist_circumference_mm,hip_circumference_mm,thigh_circumference_mm,inseam_mm,updated_at)
-                values (?,?,?,?,?,?,?,?,?,?,?) on conflict(user_id) do update set
+                    waist_circumference_mm,hip_circumference_mm,thigh_circumference_mm,inseam_mm,
+                    underbust_circumference_mm,updated_at)
+                values (?,?,?,?,?,?,?,?,?,?,?,?) on conflict(user_id) do update set
                     body_version=excluded.body_version,gender=excluded.gender,height_mm=excluded.height_mm,
                     weight_kg=excluded.weight_kg,chest_circumference_mm=excluded.chest_circumference_mm,
                     waist_circumference_mm=excluded.waist_circumference_mm,hip_circumference_mm=excluded.hip_circumference_mm,
-                    thigh_circumference_mm=excluded.thigh_circumference_mm,inseam_mm=excluded.inseam_mm,updated_at=excluded.updated_at
+                    thigh_circumference_mm=excluded.thigh_circumference_mm,inseam_mm=excluded.inseam_mm,
+                    underbust_circumference_mm=excluded.underbust_circumference_mm,updated_at=excluded.updated_at
                 """, userId, body.version(), body.gender(), m.heightMm(), m.weightKg(), m.chestCircumferenceMm(),
-                m.waistCircumferenceMm(), m.hipCircumferenceMm(), m.thighCircumferenceMm(), m.inseamMm(), Timestamp.from(body.updatedAt()));
+                m.waistCircumferenceMm(), m.hipCircumferenceMm(), m.thighCircumferenceMm(), m.inseamMm(),
+                m.underbustCircumferenceMm(), Timestamp.from(body.updatedAt()));
     }
 
     public void createGeneration(long userId, UUID id, Body body) {
@@ -43,11 +46,11 @@ public class AvatarInputStore {
         jdbc.update("""
                 insert into avatar_generation_request(id,user_id,body_version,input_schema_version,status,
                     gender,height_mm,weight_kg,chest_circumference_mm,waist_circumference_mm,
-                    hip_circumference_mm,thigh_circumference_mm,inseam_mm,created_at,updated_at)
-                values (?,?,?,1,'PENDING',?,?,?,?,?,?,?,?,?,?)
+                    hip_circumference_mm,thigh_circumference_mm,inseam_mm,underbust_circumference_mm,created_at,updated_at)
+                values (?,?,?,1,'PENDING',?,?,?,?,?,?,?,?,?,?,?)
                 """, id, userId, body.version(), body.gender(), m.heightMm(), m.weightKg(), m.chestCircumferenceMm(),
                 m.waistCircumferenceMm(), m.hipCircumferenceMm(), m.thighCircumferenceMm(), m.inseamMm(),
-                Timestamp.from(body.updatedAt()), Timestamp.from(body.updatedAt()));
+                m.underbustCircumferenceMm(), Timestamp.from(body.updatedAt()), Timestamp.from(body.updatedAt()));
     }
 
     public Optional<Generation> generation(long userId, UUID id) {
@@ -88,7 +91,8 @@ public class AvatarInputStore {
     private static Measurements measurements(ResultSet rs) throws SQLException {
         return new Measurements(rs.getInt("height_mm"), rs.getBigDecimal("weight_kg").stripTrailingZeros(),
                 rs.getInt("chest_circumference_mm"), rs.getInt("waist_circumference_mm"),
-                rs.getInt("hip_circumference_mm"), rs.getInt("thigh_circumference_mm"), rs.getInt("inseam_mm"));
+                rs.getInt("hip_circumference_mm"), rs.getInt("thigh_circumference_mm"),
+                rs.getObject("inseam_mm", Integer.class), rs.getObject("underbust_circumference_mm", Integer.class));
     }
 
     private static Generation generation(ResultSet rs) throws SQLException {

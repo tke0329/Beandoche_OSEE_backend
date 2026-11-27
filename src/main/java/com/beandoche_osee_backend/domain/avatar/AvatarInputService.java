@@ -30,8 +30,12 @@ public class AvatarInputService {
     public BodyView saveBody(long userId, BodyRequest request) {
         lockActiveUser(userId);
         validate(request, "INVALID_BODY_MEASUREMENT");
+        if (request.underbustCircumferenceMm() != null
+                && request.underbustCircumferenceMm().compareTo(request.chestCircumferenceMm()) >= 0) {
+            throw new AvatarFailure("INVALID_BODY_MEASUREMENT", "밑가슴둘레는 가슴둘레보다 작아야 합니다.", 400);
+        }
         var previous = store.body(userId);
-        var measurements = request.measurements();
+        var measurements = request.measurements(previous.map(body -> body.measurements().inseamMm()).orElse(null));
         var gender = request.normalizedGender();
         if (previous.isPresent() && Objects.equals(previous.get().gender(), gender)
                 && previous.get().measurements().equals(measurements)) {
